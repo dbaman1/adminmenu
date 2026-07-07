@@ -86,6 +86,23 @@ run_custom_command() {
 }
 
 ###
+### Find largest files with human-readable sizes
+###
+find_large_files() {
+    find / -xdev -type f -printf '%s\t%p\n' 2>/dev/null | sort -rn | head -15 | while IFS=$'\t' read -r size path; do
+        if [[ "$size" -ge 1073741824 ]]; then
+            printf '%.2f GB  %s\n' "$(awk "BEGIN {printf \"%.2f\", $size / 1073741824}")" "$path"
+        elif [[ "$size" -ge 1048576 ]]; then
+            printf '%.2f MB  %s\n' "$(awk "BEGIN {printf \"%.2f\", $size / 1048576}")" "$path"
+        elif [[ "$size" -ge 1024 ]]; then
+            printf '%.2f KB  %s\n' "$(awk "BEGIN {printf \"%.2f\", $size / 1024}")" "$path"
+        else
+            printf '%d B  %s\n' "$size" "$path"
+        fi
+    done || echo 'find not available'
+}
+
+###
 ### Check if any optional dependency is missing for a menu
 ###
 check_deps() {
@@ -360,10 +377,11 @@ storagemenu() {
         "1" "Disk SMART status (sda)" "smartctl -a /dev/sda 2>/dev/null || smartctl -a /dev/nvme0n1 2>/dev/null || echo 'smartctl not available or no disk found'" \
         "2" "Inode usage" "df -i" \
         "3" "Largest dirs in / (top 15)" "du -sh /* 2>/dev/null | sort -rh | head -15" \
-        "4" "Mount points with type" "findmnt 2>/dev/null || mount | awk '{print \$3, \$5}' || echo 'findmnt/mount not found'" \
-        "5" "LVM volumes" "vgs 2>/dev/null && lvs 2>/dev/null && pvs 2>/dev/null || echo 'LVM tools not available'" \
-        "6" "RAID status" "cat /proc/mdstat 2>/dev/null || echo 'No RAID detected'" \
-        "7" "Disk I/O stats" "iostat -x 1 1 2>/dev/null || cat /proc/diskstats || echo 'iostat not available'" \
+        "4" "Largest files in / (top 15)" "find_large_files" \
+        "5" "Mount points with type" "findmnt 2>/dev/null || mount | awk '{print \$3, \$5}' || echo 'findmnt/mount not found'" \
+        "6" "LVM volumes" "vgs 2>/dev/null && lvs 2>/dev/null && pvs 2>/dev/null || echo 'LVM tools not available'" \
+        "7" "RAID status" "cat /proc/mdstat 2>/dev/null || echo 'No RAID detected'" \
+        "8" "Disk I/O stats" "iostat -x 1 1 2>/dev/null || cat /proc/diskstats || echo 'iostat not available'" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
 }
