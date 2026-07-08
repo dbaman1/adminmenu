@@ -440,6 +440,30 @@ devmenu() {
 }
 
 ###
+### PERFORMANCE & TROUBLESHOOTING MENU
+###
+performancemenu() {
+    check_deps "vmstat" "mpstat" "pidstat" "systemd-analyze" "sensors" "pstree" "ss" "dmesg"
+
+    run_submenu "Performance & Troubleshooting" \
+        "1" "vmstat snapshot (3s)" "vmstat 1 3 2>/dev/null || echo 'vmstat not available'" \
+        "2" "Per-CPU stats (mpstat)" "mpstat -P ALL 1 1 2>/dev/null || echo 'mpstat not available'" \
+        "3" "Context switches & page faults" "vmstat -s 2>/dev/null || echo 'vmstat not available'" \
+        "4" "Connection states summary" "ss -s 2>/dev/null || echo 'ss not available'" \
+        "5" "Failed systemd units" "systemctl --failed --no-pager 2>/dev/null || echo 'systemctl not available'" \
+        "6" "Boot time analysis (top 20)" "systemd-analyze blame 2>/dev/null | head -20 || echo 'systemd-analyze not available'" \
+        "7" "Boot critical chain" "systemd-analyze critical-chain 2>/dev/null || echo 'systemd-analyze not available'" \
+        "8" "OOM killer history" "dmesg -T 2>/dev/null | grep -i oom | tail -10 || echo 'dmesg not available'" \
+        "9" "Process tree" "pstree -p 2>/dev/null || ps axjf 2>/dev/null || echo 'pstree/ps not available'" \
+        "10" "Top 10 open file descriptors" "ls /proc/*/fd 2>/dev/null | cut -d/ -f3 | sort | uniq -c | sort -rn | head -10 || echo '/proc not available'" \
+        "11" "CPU temps" "sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null || echo 'No thermal data available'" \
+        "12" "CPU frequency/governor" "cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2>/dev/null || echo 'No CPUfreq data available'" \
+        "13" "Interrupt stats (top 20)" "cat /proc/interrupts 2>/dev/null | head -20 || echo '/proc/interrupts not available'" \
+        "0" "Exit" "fn_bye" \
+        "B" "Go Back" "return_to"
+}
+
+###
 ### MAIN MENU
 ###
 mainmenu() {
@@ -466,7 +490,8 @@ mainmenu() {
         "9" "Time & Scheduling" "schedulingmenu" \
         "A" "Packages & Software" "packagemenu" \
         "B" "Development & SWE" "devmenu" \
-        "C" "Run Custom Command" "run_custom_command" \
+        "C" "Performance & Troubleshooting" "performancemenu" \
+        "D" "Run Custom Command" "run_custom_command" \
         "0" "Exit" "fn_bye"
 }
 
