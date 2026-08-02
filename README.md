@@ -131,6 +131,7 @@ Long output is automatically paginated through `less -R`.
 | 7 | Recent dmesg messages |
 | 8 | Recent systemd errors |
 | 9 | Kernel module list (`lsmod`) |
+| 10 | Kernel boot cmdline (`/proc/cmdline`) |
 
 ### 8 — Storage & Filesystem
 

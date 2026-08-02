@@ -364,6 +364,7 @@ kernelmenu() {
         "7" "Recent dmesg messages" "dmesg -T 2>/dev/null | tail -30 || echo 'dmesg not available'" \
         "8" "Recent systemd errors" "journalctl -p err --no-pager -n 20 2>/dev/null || echo 'journalctl not available'" \
         "9" "Kernel module list" "lsmod 2>/dev/null || echo 'lsmod not available'" \
+        "10" "Kernel boot cmdline" "cat /proc/cmdline 2>/dev/null || echo '/proc/cmdline not available'" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
 }
