@@ -309,6 +309,7 @@ networkmenu() {
         "8" "ARP table" "ip neigh 2>/dev/null || arp -a 2>/dev/null || echo 'No ARP tool found'" \
         "9" "Network interface stats" "cat /proc/net/dev" \
         "10" "Tailscale" "tailscale ip && tailscale status && tailscale netcheck 2>/dev/null || echo 'tailscale not found'" \
+        "11" "Sockets by process (root for all)" "ss -tulpn 2>/dev/null || netstat -tulpn 2>/dev/null || lsof -i -P -n 2>/dev/null || echo 'ss/netstat/lsof not found'" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
 }

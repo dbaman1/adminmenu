@@ -92,6 +92,7 @@ Long output is automatically paginated through `less -R`.
 | 8 | ARP table |
 | 9 | Network interface stats (`/proc/net/dev`) |
 | 10 | Tailscale status |
+| 11 | Sockets by process (`ss -tulpn`) |
 
 ### 5 — Processes & Resources
 
@@ -212,6 +213,8 @@ sudo ./menu.sh
 ```
 
 When run without root, a warning is displayed and individual options fall back gracefully with a message.
+
+**Sockets by process** is a partial case: it runs fine without root, but the Process column is populated only for processes you own. Run with `sudo` to attribute every socket.
 
 ## Optional Tools
 
