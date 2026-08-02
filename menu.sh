@@ -273,6 +273,7 @@ archsysteminfomenu() {
         "9" "uname -a" "uname -a" \
         "10" "Linux Distribution" "lsb_release -a 2>/dev/null || cat /etc/os-release" \
         "11" "Kernel version" "uname -r" \
+        "12" "OS release codename" ". /etc/os-release 2>/dev/null && printf '%s\n' \"\${VERSION_CODENAME:-No codename in /etc/os-release}\" || echo '/etc/os-release not found'" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
 }

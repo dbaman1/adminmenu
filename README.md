@@ -66,6 +66,7 @@ Long output is automatically paginated through `less -R`.
 | 9 | `uname -a` |
 | 10 | Linux distribution info |
 | 11 | Kernel version |
+| 12 | OS release codename (`/etc/os-release`) |
 
 ### 3 — Disk Space
 
