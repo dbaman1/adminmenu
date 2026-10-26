@@ -55,10 +55,11 @@ warn_not_root() {
 run_cmd() {
     local cmd="$1"
     local output
-    output=$(eval "$cmd" 2>&1) || true
+    # Strip control chars (keep tab/newline) so filenames or remote text can't inject escape sequences
+    output=$(eval "$cmd" 2>&1 | tr -d '\000-\010\013-\037\177') || true
     local lines
     lines=$(echo "$output" | wc -l)
-    if [[ "$lines" -gt $(tput lines 2>/dev/null || echo 20) ]]; then
+    if cmd_exists less && [[ "$lines" -gt $(tput lines 2>/dev/null || echo 20) ]]; then
         echo "$output" | less -R
     else
         echo "$output"
@@ -80,7 +81,8 @@ run_custom_command() {
     echo
     echo -ne "${YELLOW}Running: ${cmd}${RESET}\n"
     echo "---"
-    eval "$cmd" 2>&1 || true
+    # Subshell: exit/cd/IFS= can't alter the menu; set +u so unset vars behave as in a normal shell
+    ( set +u; eval "$cmd" ) 2>&1 || true
     echo "---"
     echo
 }
@@ -89,7 +91,11 @@ run_custom_command() {
 ### Find largest files with human-readable sizes
 ###
 find_large_files() {
-    find / -xdev -type f -printf '%s\t%p\n' 2>/dev/null | sort -rn | head -15 | while IFS=$'\t' read -r size path; do
+    # NUL-separated: filenames may contain newlines and forge size lines
+    find / -xdev -type f -printf '%s\t%p\0' 2>/dev/null | sort -zrn | head -zn 15 | while IFS=$'\t' read -r -d '' size path; do
+        # [[ -ge ]] evaluates its operands as arithmetic, which can run commands; only accept digits
+        [[ "$size" =~ ^[0-9]+$ ]] || continue
+        path="${path//[[:cntrl:]]/?}"
         if [[ "$size" -ge 1073741824 ]]; then
             printf '%.2f GB  %s\n' "$(awk "BEGIN {printf \"%.2f\", $size / 1073741824}")" "$path"
         elif [[ "$size" -ge 1048576 ]]; then
@@ -300,7 +306,7 @@ networkmenu() {
 
     run_submenu "Network" \
         "1" "ifconfig / ip addr" "ip addr 2>/dev/null || ifconfig 2>/dev/null || echo 'Neither ifconfig nor ip found'" \
-        "2" "Public IP" "curl -s ifconfig.me 2>/dev/null || curl -s icanhazip.com 2>/dev/null || echo 'curl not available'" \
+        "2" "Public IP" "curl -fs https://ifconfig.me 2>/dev/null || curl -fs https://icanhazip.com 2>/dev/null || echo 'curl not available or offline'" \
         "3" "Private IP" "hostname -I | awk '{print \$1}'" \
         "4" "Routing table" "ip route 2>/dev/null || route -n 2>/dev/null || echo 'No routing tool found'" \
         "5" "DNS config" "cat /etc/resolv.conf" \
@@ -458,7 +464,7 @@ performancemenu() {
         "7" "Boot critical chain" "systemd-analyze critical-chain 2>/dev/null || echo 'systemd-analyze not available'" \
         "8" "OOM killer history" "dmesg -T 2>/dev/null | grep -i oom | tail -10 || echo 'dmesg not available'" \
         "9" "Process tree" "pstree -p 2>/dev/null || ps axjf 2>/dev/null || echo 'pstree/ps not available'" \
-        "10" "Top 10 open file descriptors" "ls /proc/*/fd 2>/dev/null | cut -d/ -f3 | sort | uniq -c | sort -rn | head -10 || echo '/proc not available'" \
+        "10" "Top 10 open file descriptors" "if [ -d /proc/self/fd ]; then { find /proc/[0-9]*/fd -mindepth 1 -maxdepth 1 2>/dev/null || true; } | cut -d/ -f3 | sort | uniq -c | sort -rn | head -10; else echo '/proc not available'; fi" \
         "11" "CPU temps" "sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null || echo 'No thermal data available'" \
         "12" "CPU frequency/governor" "cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2>/dev/null || echo 'No CPUfreq data available'" \
         "13" "Interrupt stats (top 20)" "cat /proc/interrupts 2>/dev/null | head -20 || echo '/proc/interrupts not available'" \
