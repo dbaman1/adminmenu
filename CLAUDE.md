@@ -14,7 +14,8 @@ brainstorming prompt, not a spec.
 ## Commands
 
 ```bash
-bash -n menu.sh    # syntax check — the only automated check available
+bash -n menu.sh    # syntax check
+tests/smoke.sh     # build every menu + run every action (~20s); -v lists passes, PATTERN filters
 ./menu.sh          # run
 sudo ./menu.sh     # full access to dmesg/iptables/smartctl//proc/*/fd
 
@@ -22,10 +23,16 @@ sudo ./menu.sh     # full access to dmesg/iptables/smartctl//proc/*/fd
 printf 'zz\n0\n' | timeout 10 ./menu.sh
 ```
 
-No test suite, build, or linter (`shellcheck` is not installed). After changing
-`menu.sh`, run `bash -n`, then exercise the affected menu manually — a broken action
-string is a runtime failure, not a syntax error. Do not stand up a test harness as a side
-effect of an unrelated change; propose it first.
+No build or linter (`shellcheck` is not installed). After changing `menu.sh`, run
+`bash -n` and `tests/smoke.sh` (or `tests/smoke.sh 'Network'` for one menu), then eyeball
+the affected option — a broken action string is a runtime failure, not a syntax error.
+
+`tests/smoke.sh` sources `menu.sh` (the `BASH_SOURCE` guard at the bottom keeps
+`mainmenu` from starting — keep it), replaces `run_submenu` to collect triples, walks every
+submenu, and runs each action through the real `run_cmd` in a fresh shell. FAIL = menu
+won't build, non-zero exit, or shell-breakage text (`command not found`, `unbound
+variable`, …); TIMEOUT/EMPTY are warnings. It can't judge whether output is *correct*, and
+non-root runs only exercise the "need root" paths. Some actions hit the network.
 
 ## Architecture
 

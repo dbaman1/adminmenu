@@ -220,6 +220,7 @@ When run without root, a warning is displayed and individual options fall back g
 
 The following tools are detected at runtime. If missing, a yellow warning is shown and affected options display a fallback message:
 
+- `cal` — Date/Time
 - `lspci`, `lsusb`, `lsblk`, `lsb_release` — Arch/SystemInfo
 - `ifconfig`, `curl`, `tailscale` — Network
 - `iptables`, `ufw` — Users & Security

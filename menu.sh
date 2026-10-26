@@ -274,10 +274,12 @@ run_submenu() {
 ### DATETIME MENU
 ###
 datetimemenu() {
+    check_deps "cal"
+
     run_submenu "Time/Date" \
         "1" "timedatectl" "timedatectl" \
         "2" "Current date & time" "date '+%Y-%m-%d %H:%M:%S %Z'" \
-        "3" "Calendar" "cal" \
+        "3" "Calendar" "cal 2>/dev/null || echo 'cal not found'" \
         "4" "Epoch / uptime" "date +%s; uptime" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
@@ -530,6 +532,8 @@ mainmenu() {
 trap 'echo; echo "Interrupted. Returning to menu."; return' INT
 
 ###
-### Start
+### Start (skipped when sourced, e.g. by tests/smoke.sh)
 ###
-mainmenu
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    mainmenu
+fi

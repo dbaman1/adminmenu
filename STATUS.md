@@ -3,21 +3,18 @@
 ## Resume here
 
 **State (2026-10-26):** `master` == `origin/master` (head: `git log -1`), tree clean. `bash -n` OK and
-smoke test OK (`Bye.`, rc 0) as of 2026-10-26. Nothing is half-done.
+`tests/smoke.sh` 98/98 pass (non-root) as of 2026-10-26. Nothing is half-done.
 
 **FIRST (<2 min):**
 ```bash
 git status -sb                                   # expect: ## master...origin/master, nothing else
-bash -n menu.sh && printf 'zz\n0\n' | timeout 10 ./menu.sh | tail -1   # expect: Bye.
+bash -n menu.sh && tests/smoke.sh                # expect: 98 passed, 0 failed, 0 warnings (non-root)
 ```
 
 **THEN — next direction (pick one; none started):**
 1. Decide on the duplicate options (Inode usage, Listening ports, uname/uptime). That's a
    product call, so ask the user.
-2. **Needs the user's go-ahead first:** a smoke-test harness. Guard the entry point so
-   `menu.sh` can be sourced, then run every action string. `CLAUDE.md` says to propose it
-   before building.
-3. Known gaps, not started:
+2. Known gaps, not started:
    - `ssh_key_summary` ignores a custom `AuthorizedKeysFile`; fixing it means parsing `sshd -T`.
    - The full-filesystem scans don't use `nice`/`ionice` and give no "may take a while" notice.
    - `packagemenu`'s `check_deps "apt" "dnf" "docker"` always warns on single-distro hosts,
@@ -28,7 +25,8 @@ bash -n menu.sh && printf 'zz\n0\n' | timeout 10 ./menu.sh | tail -1   # expect:
 - **2026-10-26:** fixed all 19 audit findings (`3a52546`, `f15cbc1`; the never-committed
   `AUDIT.md` is deleted, so the detail lives in those commit messages), finished the `TRIAGE.md`
   quick fixes (`ce0176c`), and deleted the dead `uv init` Python scaffold at the user's request
-  (`69e7dfc`).
+  (`69e7dfc`). Added the `tests/smoke.sh` harness, which caught `cal` having no fallback
+  (now fixed).
 
 ## Standing reference (don't re-derive)
 
