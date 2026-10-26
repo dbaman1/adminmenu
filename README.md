@@ -76,7 +76,7 @@ Long output is automatically paginated through `less -R`.
 | 2 | `df -h` (all) |
 | 3 | Inode usage |
 | 4 | Current directory listing |
-| 5 | Large files in `/` (top 20) |
+| 5 | Files over 100M in `/` (first 20) |
 
 ### 4 — Network
 
@@ -87,7 +87,7 @@ Long output is automatically paginated through `less -R`.
 | 3 | Private IP |
 | 4 | Routing table |
 | 5 | DNS config (`/etc/resolv.conf`) |
-| 6 | Listening ports (`ss -tln`) |
+| 6 | Listening ports (`ss -tuln`) |
 | 7 | Active connections (`ss -tn`) |
 | 8 | ARP table |
 | 9 | Network interface stats (`/proc/net/dev`) |

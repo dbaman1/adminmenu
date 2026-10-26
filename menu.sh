@@ -58,11 +58,11 @@ run_cmd() {
     # Strip control chars (keep tab/newline) so filenames or remote text can't inject escape sequences
     output=$(eval "$cmd" 2>&1 | tr -d '\000-\010\013-\037\177') || true
     local lines
-    lines=$(echo "$output" | wc -l)
+    lines=$(printf '%s\n' "$output" | wc -l)
     if cmd_exists less && [[ "$lines" -gt $(tput lines 2>/dev/null || echo 20) ]]; then
-        echo "$output" | less -R
+        printf '%s\n' "$output" | less -R
     else
-        echo "$output"
+        printf '%s\n' "$output"
     fi
 }
 
@@ -79,7 +79,7 @@ run_custom_command() {
         return
     fi
     echo
-    echo -ne "${YELLOW}Running: ${cmd}${RESET}\n"
+    printf '%sRunning: %s%s\n' "$YELLOW" "$cmd" "$RESET"
     echo "---"
     # Subshell: exit/cd/IFS= can't alter the menu; set +u so unset vars behave as in a normal shell
     ( set +u; eval "$cmd" ) 2>&1 || true
@@ -105,7 +105,20 @@ find_large_files() {
         else
             printf '%d B  %s\n' "$size" "$path"
         fi
-    done || echo 'find not available'
+    done || true
+}
+
+###
+### SSH authorized_keys per account: key count (non-blank, non-comment lines) and path
+###
+ssh_key_summary() {
+    local f n found=0
+    while IFS= read -r -d '' f; do
+        found=1
+        n=$(grep -cv '^[[:space:]]*\(#\|$\)' "$f" 2>/dev/null) || true
+        printf '%s keys  %s\n' "${n:-?}" "${f//[[:cntrl:]]/?}"
+    done < <(find /root /home -maxdepth 3 -name authorized_keys -type f -print0 2>/dev/null)
+    [[ $found -eq 1 ]] || echo 'No SSH keys found (run as root to see all)'
 }
 
 ###
@@ -181,7 +194,11 @@ run_submenu() {
 
         read -r -t 60 ans || {
             echo
-            echo "Timed out. Returning to menu."
+            if [[ "${FUNCNAME[1]}" == "mainmenu" ]]; then
+                echo "No input. Exiting."
+            else
+                echo "No input. Returning to previous menu."
+            fi
             return
         }
         case "${ans^^}" in
@@ -293,7 +310,7 @@ diskspacemenu() {
         "2" "df -h (all)" "df -h" \
         "3" "Inode usage" "df -i" \
         "4" "Current directory listing" "ls -lh" \
-        "5" "Large files in / (top 20)" "find / -xdev -type f -size +100M 2>/dev/null | head -20" \
+        "5" "Files over 100M in / (first 20)" "find / -xdev -type f -size +100M 2>/dev/null | head -20" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
 }
@@ -306,15 +323,15 @@ networkmenu() {
 
     run_submenu "Network" \
         "1" "ifconfig / ip addr" "ip addr 2>/dev/null || ifconfig 2>/dev/null || echo 'Neither ifconfig nor ip found'" \
-        "2" "Public IP" "curl -fs https://ifconfig.me 2>/dev/null || curl -fs https://icanhazip.com 2>/dev/null || echo 'curl not available or offline'" \
-        "3" "Private IP" "hostname -I | awk '{print \$1}'" \
+        "2" "Public IP" "curl -fs --max-time 5 https://ifconfig.me 2>/dev/null || curl -fs --max-time 5 https://icanhazip.com 2>/dev/null || echo 'curl not available or offline'" \
+        "3" "Private IP" "hostname -I 2>/dev/null | awk '{print \$1}' || ip -4 route get 1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if (\$i == \"src\") print \$(i + 1)}' || echo 'Neither hostname -I nor ip found'" \
         "4" "Routing table" "ip route 2>/dev/null || route -n 2>/dev/null || echo 'No routing tool found'" \
         "5" "DNS config" "cat /etc/resolv.conf" \
-        "6" "Listening ports" "ss -tln 2>/dev/null || netstat -tlnp 2>/dev/null || echo 'ss/netstat not found'" \
+        "6" "Listening ports" "ss -tuln 2>/dev/null || netstat -tulnp 2>/dev/null || echo 'ss/netstat not found'" \
         "7" "Active connections" "ss -tn 2>/dev/null || netstat -tnp 2>/dev/null || echo 'ss/netstat not found'" \
         "8" "ARP table" "ip neigh 2>/dev/null || arp -a 2>/dev/null || echo 'No ARP tool found'" \
         "9" "Network interface stats" "cat /proc/net/dev" \
-        "10" "Tailscale" "tailscale ip && tailscale status && tailscale netcheck 2>/dev/null || echo 'tailscale not found'" \
+        "10" "Tailscale" "if cmd_exists tailscale; then tailscale ip; tailscale status; tailscale netcheck; else echo 'tailscale not found'; fi" \
         "11" "Sockets by process (root for all)" "ss -tulpn 2>/dev/null || netstat -tulpn 2>/dev/null || lsof -i -P -n 2>/dev/null || echo 'ss/netstat/lsof not found'" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
@@ -329,8 +346,8 @@ processmenu() {
     run_submenu "Processes & Resources" \
         "1" "Top 10 CPU consumers" "ps aux --sort=-%cpu 2>/dev/null | head -11" \
         "2" "Top 10 Memory consumers" "ps aux --sort=-%mem 2>/dev/null | head -11" \
-        "3" "Running services count" "systemctl list-units --type=service --state=running --no-pager 2>/dev/null | grep running || echo 'systemctl not available'" \
-        "4" "Zombie processes" "ps aux | awk '/\[Z\]/ || /Z/ {print}' || echo 'None found'" \
+        "3" "Running services count" "if cmd_exists systemctl; then systemctl list-units --type=service --state=running --no-pager --no-legend 2>/dev/null | wc -l; else echo 'systemctl not available'; fi" \
+        "4" "Zombie processes" "ps -eo pid,ppid,stat,comm | awk 'NR == 1 {h = \$0; next} \$3 ~ /^Z/ {if (!n++) print h; print} END {if (!n) print \"None found\"}'" \
         "5" "System load average" "uptime" \
         "6" "System load (detailed)" "top -bn1 | head -5" \
         "0" "Exit" "fn_bye" \
@@ -347,12 +364,12 @@ usersecuritymenu() {
         "1" "Logged-in users" "who" \
         "2" "User activity detail" "w" \
         "3" "Recent logins" "last -n 20" \
-        "4" "Failed SSH attempts (1h)" "journalctl -u ssh --since '1 hour ago' --no-pager 2>/dev/null | grep -i 'failed password' | tail -20 || echo 'journalctl/ssh not available'" \
-        "5" "Sudoers config" "ls -la /etc/sudoers.d/ 2>/dev/null || cat /etc/sudoers 2>/dev/null || echo 'No sudoers found'" \
-        "6" "SSH authorized keys summary" "find /home -maxdepth 3 -name authorized_keys -exec echo {} \; -exec wc -l {} \; 2>/dev/null || echo 'No SSH keys found'" \
-        "7" "Firewall rules (iptables)" "iptables -L -n -v 2>/dev/null || echo 'iptables not available'" \
-        "8" "Firewall status (ufw)" "ufw status 2>/dev/null || echo 'ufw not available'" \
-        "9" "Listening ports" "ss -tln 2>/dev/null || netstat -tlnp 2>/dev/null || echo 'ss/netstat not found'" \
+        "4" "Failed SSH attempts (1h)" "if cmd_exists journalctl; then journalctl -u ssh -u sshd --since '1 hour ago' --no-pager 2>/dev/null | grep -i 'failed password' | tail -20 || echo 'None found'; else echo 'journalctl not available'; fi" \
+        "5" "Sudoers config" "[ -e /etc/sudoers ] || echo 'No sudoers found'; for f in /etc/sudoers /etc/sudoers.d/*; do [ -f \"\$f\" ] || continue; echo \"== \$f\"; cat \"\$f\" 2>/dev/null || echo '(not readable; run as root)'; done" \
+        "6" "SSH authorized keys summary" "ssh_key_summary" \
+        "7" "Firewall rules (iptables)" "if cmd_exists iptables; then iptables -L -n -v; else echo 'iptables not available'; fi" \
+        "8" "Firewall status (ufw)" "if cmd_exists ufw; then ufw status; else echo 'ufw not available'; fi" \
+        "9" "Listening ports" "ss -tuln 2>/dev/null || netstat -tulnp 2>/dev/null || echo 'ss/netstat not found'" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
 }
@@ -380,15 +397,15 @@ kernelmenu() {
 ### STORAGE / DISK EXTENDED MENU
 ###
 storagemenu() {
-    check_deps "smartctl"
+    check_deps "smartctl" "lsblk"
 
     run_submenu "Storage & Filesystem" \
-        "1" "Disk SMART status (sda)" "smartctl -a /dev/sda 2>/dev/null || smartctl -a /dev/nvme0n1 2>/dev/null || echo 'smartctl not available or no disk found'" \
+        "1" "Disk SMART status (all disks)" "if cmd_exists smartctl; then for d in \$(lsblk -dno NAME,TYPE 2>/dev/null | awk '\$2 == \"disk\" {print \$1}'); do echo \"== /dev/\$d\"; smartctl -a \"/dev/\$d\"; done; else echo 'smartctl not available'; fi" \
         "2" "Inode usage" "df -i" \
-        "3" "Largest dirs in / (top 15)" "du -sh /* 2>/dev/null | sort -rh | head -15" \
+        "3" "Largest dirs in / (top 15)" "du -xh -d1 / 2>/dev/null | sort -rh | head -15" \
         "4" "Largest files in / (top 15)" "find_large_files" \
         "5" "Mount points with type" "findmnt 2>/dev/null || mount | awk '{print \$3, \$5}' || echo 'findmnt/mount not found'" \
-        "6" "LVM volumes" "vgs 2>/dev/null && lvs 2>/dev/null && pvs 2>/dev/null || echo 'LVM tools not available'" \
+        "6" "LVM volumes" "if cmd_exists vgs; then vgs; lvs; pvs; else echo 'LVM tools not available'; fi" \
         "7" "RAID status" "cat /proc/mdstat 2>/dev/null || echo 'No RAID detected'" \
         "8" "Disk I/O stats" "iostat -x 1 1 2>/dev/null || cat /proc/diskstats || echo 'iostat not available'" \
         "0" "Exit" "fn_bye" \
@@ -403,8 +420,8 @@ schedulingmenu() {
 
     run_submenu "Time & Scheduling" \
         "1" "User crontab" "crontab -l 2>/dev/null || echo 'No user crontab'" \
-        "2" "System cron directories" "ls -la /etc/cron.d/ 2>/dev/null; ls -la /etc/cron.daily/ 2>/dev/null; ls -la /etc/cron.hourly/ 2>/dev/null || echo 'Cron dirs not found'" \
-        "3" "Anacron jobs" "ls -la /etc/anacrontab 2>/dev/null || echo 'Anacron not installed'" \
+        "2" "System cron directories" "ls -la /etc/cron.d/ /etc/cron.daily/ /etc/cron.hourly/" \
+        "3" "Anacron jobs" "cat /etc/anacrontab 2>/dev/null || echo 'Anacron not installed'" \
         "4" "Systemd timers" "systemctl list-timers --all --no-pager 2>/dev/null || echo 'systemctl not available'" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
@@ -417,10 +434,10 @@ packagemenu() {
     check_deps "apt" "dnf" "yum" "docker"
 
     run_submenu "Packages & Software" \
-        "1" "Installed packages (count)" "(dpkg -l 2>/dev/null || rpm -qa 2>/dev/null || echo 'No package manager found') | wc -l" \
-        "2" "Recently installed (dpkg)" "dpkg --get-selections 2>/dev/null | tail -20 || echo 'dpkg not available'" \
+        "1" "Installed packages (count)" "if cmd_exists dpkg-query; then dpkg-query -W -f '\${db:Status-Abbrev}\n' | grep -c '^ii'; elif cmd_exists rpm; then rpm -qa | wc -l; else echo 'No package manager found'; fi" \
+        "2" "Recently installed (dpkg)" "grep ' install ' /var/log/dpkg.log 2>/dev/null | tail -20 || echo 'No installs in /var/log/dpkg.log'" \
         "3" "Updates available (apt)" "apt list --upgradable 2>/dev/null | grep -v '^Listing' || echo 'apt not available or no updates'" \
-        "4" "Updates available (dnf)" "dnf check-update 2>/dev/null || echo 'dnf not available'" \
+        "4" "Updates available (dnf)" "if cmd_exists dnf; then dnf check-update 2>/dev/null; rc=\$?; [ \$rc -eq 0 ] && echo 'No updates available'; [ \$rc -eq 1 ] && echo 'dnf check-update failed'; else echo 'dnf not available'; fi" \
         "5" "Docker containers" "docker ps -a 2>/dev/null || echo 'Docker not installed'" \
         "6" "Docker images" "docker images 2>/dev/null || echo 'Docker not installed'" \
         "7" "Auto-start services" "systemctl list-unit-files --type=service --state=enabled --no-pager 2>/dev/null | head -30 || echo 'systemctl not available'" \
@@ -435,13 +452,13 @@ devmenu() {
     check_deps "git" "node" "python3" "go"
 
     run_submenu "Development & SWE" \
-        "1" "Git repos in home" "find ~ -maxdepth 3 -name .git -type d 2>/dev/null | head -20 || echo 'No git repos found'" \
+        "1" "Git repos in home" "{ find ~ -maxdepth 3 -name .git -type d 2>/dev/null || true; } | head -20 | grep . || echo 'No git repos found'" \
         "2" "Node version" "node --version 2>/dev/null || echo 'Node not installed'" \
         "3" "npm global packages" "npm list -g --depth=0 2>/dev/null || echo 'npm not available'" \
         "4" "Python version" "python3 --version 2>/dev/null || echo 'Python3 not installed'" \
-        "5" "pip packages" "pip3 list 2>/dev/null | head -30 || echo 'pip not available'" \
+        "5" "pip packages" "if cmd_exists pip3; then pip3 list 2>/dev/null | head -30; else echo 'pip not available'; fi" \
         "6" "Go version" "go version 2>/dev/null || echo 'Go not installed'" \
-        "7" "Environment variables" "env | sort" \
+        "7" "Environment variables" "env | sort | sed -E 's/^([^=]*(KEY|TOKEN|SECRET|PASS|CREDENTIAL)[^=]*)=.*/\\1=****/I'" \
         "8" "Active SSH sessions" "ps aux | grep ssh | grep -v grep || echo 'No active SSH sessions'" \
         "9" "SSH known hosts" "wc -l ~/.ssh/known_hosts 2>/dev/null || echo 'No known_hosts'" \
         "0" "Exit" "fn_bye" \
@@ -462,12 +479,12 @@ performancemenu() {
         "5" "Failed systemd units" "systemctl --failed --no-pager 2>/dev/null || echo 'systemctl not available'" \
         "6" "Boot time analysis (top 20)" "systemd-analyze blame 2>/dev/null | head -20 || echo 'systemd-analyze not available'" \
         "7" "Boot critical chain" "systemd-analyze critical-chain 2>/dev/null || echo 'systemd-analyze not available'" \
-        "8" "OOM killer history" "dmesg -T 2>/dev/null | grep -i oom | tail -10 || echo 'dmesg not available'" \
+        "8" "OOM killer history" "if ! cmd_exists dmesg; then echo 'dmesg not available'; elif ! dmesg >/dev/null 2>&1; then echo 'dmesg not readable (run as root)'; else dmesg -T | grep -i oom | tail -10 || echo 'No OOM events found'; fi" \
         "9" "Process tree" "pstree -p 2>/dev/null || ps axjf 2>/dev/null || echo 'pstree/ps not available'" \
         "10" "Top 10 open file descriptors" "if [ -d /proc/self/fd ]; then { find /proc/[0-9]*/fd -mindepth 1 -maxdepth 1 2>/dev/null || true; } | cut -d/ -f3 | sort | uniq -c | sort -rn | head -10; else echo '/proc not available'; fi" \
         "11" "CPU temps" "sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null || echo 'No thermal data available'" \
         "12" "CPU frequency/governor" "cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2>/dev/null || echo 'No CPUfreq data available'" \
-        "13" "Interrupt stats (top 20)" "cat /proc/interrupts 2>/dev/null | head -20 || echo '/proc/interrupts not available'" \
+        "13" "Interrupt stats (top 20)" "head -20 /proc/interrupts 2>/dev/null || echo '/proc/interrupts not available'" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
 }
