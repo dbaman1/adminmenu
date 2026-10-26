@@ -14,11 +14,9 @@ bash -n menu.sh && printf 'zz\n0\n' | timeout 10 ./menu.sh | tail -1   # expect:
 **THEN — next direction (pick one; none started):**
 1. Decide on the duplicate options (Inode usage, Listening ports, uname/uptime). That's a
    product call, so ask the user.
-2. **Needs the user's go-ahead first:**
-   - Delete the dead Python scaffold (`main.py`, `pyproject.toml`, `.python-version`, `.venv/`).
-     `CLAUDE.md` currently says not to touch these files.
-   - A smoke-test harness: guard the entry point so `menu.sh` can be sourced, then run every
-     action string. `CLAUDE.md` says to propose it before building.
+2. **Needs the user's go-ahead first:** a smoke-test harness. Guard the entry point so
+   `menu.sh` can be sourced, then run every action string. `CLAUDE.md` says to propose it
+   before building.
 3. Known gaps, not started:
    - `ssh_key_summary` ignores a custom `AuthorizedKeysFile`; fixing it means parsing `sshd -T`.
    - The full-filesystem scans don't use `nice`/`ionice` and give no "may take a while" notice.
@@ -28,7 +26,8 @@ bash -n menu.sh && printf 'zz\n0\n' | timeout 10 ./menu.sh | tail -1   # expect:
 ## What shipped
 
 - **2026-10-26:** fixed all 19 audit findings (`3a52546`, `f15cbc1`; the never-committed `AUDIT.md` is
-  deleted, so the detail lives in those commit messages) and the `TRIAGE.md` quick fixes (`ce0176c`).
+  deleted, so the detail lives in those commit messages) and the `TRIAGE.md` quick fixes (`ce0176c`). The dead `uv init` Python scaffold (including
+  its Python-only `.gitignore`) was deleted at the user's request.
 
 ## Standing reference (don't re-derive)
 

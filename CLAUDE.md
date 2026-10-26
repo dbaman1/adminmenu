@@ -7,10 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A sysadmin utility: a colorized terminal menu for browsing Linux system info without
 memorizing commands. Intended to be dropped onto any server as a single file.
 
-**Everything lives in `menu.sh`** (~500 lines, bash 4+). `main.py`, `pyproject.toml`,
-`.python-version`, and `.venv/` are leftovers from a `uv init` scaffold — nothing imports
-or runs them. Do not add Python; the value proposition is zero dependencies. Don't edit
-them. `prompt.md` is a historical brainstorming prompt, not a spec.
+**Everything lives in `menu.sh`** (~500 lines, bash 4+). Do not add Python or other
+dependencies; the value proposition is zero dependencies. `prompt.md` is a historical
+brainstorming prompt, not a spec.
 
 ## Commands
 
