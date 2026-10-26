@@ -8,7 +8,7 @@
 **FIRST (<2 min):**
 ```bash
 git status -sb                                   # expect: ## master...origin/master, nothing else
-bash -n menu.sh && tests/smoke.sh                # expect: 98 passed, 0 failed, 0 warnings (non-root)
+bash -n menu.sh && tests/smoke.sh                # expect: N passed, 0 failed, 0 warnings (N=98 today)
 ```
 
 **THEN — next direction (pick one; none started):**
@@ -31,8 +31,7 @@ bash -n menu.sh && tests/smoke.sh                # expect: 98 passed, 0 failed, 
 ## Standing reference (don't re-derive)
 
 - **There's no `.gitignore`, on purpose.** The old one held only Python patterns from the
-  deleted scaffold. Don't restore it; the repo is just `menu.sh` plus Markdown files.
-
+  deleted scaffold. Don't restore it; the repo is `menu.sh`, `tests/smoke.sh` and Markdown.
 - **The Bash ≥4 guard sits above `set -euo pipefail` on purpose.** `sh`/dash dies on
   `set -o pipefail`, so the guard has to run first to print its message.
 - **Security invariants. Don't regress these:**
@@ -53,10 +52,14 @@ bash -n menu.sh && tests/smoke.sh                # expect: 98 passed, 0 failed, 
     "not available".
   - When the result can be empty, put `|| echo 'None found'` inside the branch.
   - `cmd_exists` is available inside action strings.
-- **Tests:**
-  - Testing non-root, sudoers, iptables, ufw, LVM and dmesg only show their "need root" messages.
-  - `smartctl` and `dnf` aren't installed on this machine, so those options were only checked
-    for their "not available" path.
+- **Tests (`tests/smoke.sh`, ~20s; details in `CLAUDE.md`):**
+  - Run it after any `menu.sh` change. The pass count equals the number of options, so it
+    changes whenever options are added or removed. A FAIL means the action is broken.
+  - It depends on the `BASH_SOURCE` guard at the bottom of `menu.sh`. Removing the guard makes
+    the harness start the interactive menu.
+  - It only catches breakage, not wrong output. Non-root runs only exercise the "need root"
+    paths for sudoers, iptables, ufw, LVM and dmesg. `smartctl` and `dnf` aren't installed
+    here, so those options have only been checked for their "not available" path.
 - **Commit rhythm:** a short-lived branch, then a commit, then a `--ff-only` merge to `master`,
   then delete the branch and push `origin master`. Commit and push only when the user says to.
 - `TRIAGE.md` is the original triage, now partly stale (most of its risks are fixed). Use it
