@@ -25,11 +25,15 @@ bash -n menu.sh && printf 'zz\n0\n' | timeout 10 ./menu.sh | tail -1   # expect:
 
 ## What shipped
 
-- **2026-10-26:** fixed all 19 audit findings (`3a52546`, `f15cbc1`; the never-committed `AUDIT.md` is
-  deleted, so the detail lives in those commit messages) and the `TRIAGE.md` quick fixes (`ce0176c`). The dead `uv init` Python scaffold (including
-  its Python-only `.gitignore`) was deleted at the user's request.
+- **2026-10-26:** fixed all 19 audit findings (`3a52546`, `f15cbc1`; the never-committed
+  `AUDIT.md` is deleted, so the detail lives in those commit messages), finished the `TRIAGE.md`
+  quick fixes (`ce0176c`), and deleted the dead `uv init` Python scaffold at the user's request
+  (`69e7dfc`).
 
 ## Standing reference (don't re-derive)
+
+- **There's no `.gitignore`, on purpose.** The old one held only Python patterns from the
+  deleted scaffold. Don't restore it; the repo is just `menu.sh` plus Markdown files.
 
 - **The Bash ≥4 guard sits above `set -euo pipefail` on purpose.** `sh`/dash dies on
   `set -o pipefail`, so the guard has to run first to print its message.
