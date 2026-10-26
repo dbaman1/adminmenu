@@ -1,4 +1,9 @@
 #!/bin/bash
+# ${var^^} and local -a need bash 4; fail at startup rather than mid-menu
+if [ "${BASH_VERSINFO:-0}" -lt 4 ]; then
+    echo "menu.sh needs bash 4 or newer (found ${BASH_VERSION:-unknown})." >&2
+    exit 1
+fi
 set -euo pipefail
 shopt -u nocasematch
 
@@ -273,7 +278,7 @@ datetimemenu() {
         "1" "timedatectl" "timedatectl" \
         "2" "Current date & time" "date '+%Y-%m-%d %H:%M:%S %Z'" \
         "3" "Calendar" "cal" \
-        "4" "Epoch / uptime" "uptime" \
+        "4" "Epoch / uptime" "date +%s; uptime" \
         "0" "Exit" "fn_bye" \
         "B" "Go Back" "return_to"
 }
@@ -341,8 +346,6 @@ networkmenu() {
 ### PROCESS / RESOURCE MONITORING MENU
 ###
 processmenu() {
-    check_deps "htop"
-
     run_submenu "Processes & Resources" \
         "1" "Top 10 CPU consumers" "ps aux --sort=-%cpu 2>/dev/null | head -11" \
         "2" "Top 10 Memory consumers" "ps aux --sort=-%mem 2>/dev/null | head -11" \
@@ -358,7 +361,7 @@ processmenu() {
 ### USER / SECURITY MENU
 ###
 usersecuritymenu() {
-    check_deps "iptables" "ufw" "nmap"
+    check_deps "iptables" "ufw"
 
     run_submenu "Users & Security" \
         "1" "Logged-in users" "who" \
@@ -382,7 +385,7 @@ kernelmenu() {
         "1" "Kernel version" "uname -r" \
         "2" "Kernel version (full)" "uname -a" \
         "3" "System uptime" "uptime" \
-        "4" "Kernel parameters" "sysctl -a 2>/dev/null | less -R || echo 'sysctl not available'" \
+        "4" "Kernel parameters" "sysctl -a 2>/dev/null || echo 'sysctl not available'" \
         "5" "Mounted filesystems" "mount" \
         "6" "fstab contents" "cat /etc/fstab 2>/dev/null || echo '/etc/fstab not found'" \
         "7" "Recent dmesg messages" "dmesg -T 2>/dev/null | tail -30 || echo 'dmesg not available'" \
@@ -431,7 +434,7 @@ schedulingmenu() {
 ### PACKAGE / SOFTWARE MENU
 ###
 packagemenu() {
-    check_deps "apt" "dnf" "yum" "docker"
+    check_deps "apt" "dnf" "docker"
 
     run_submenu "Packages & Software" \
         "1" "Installed packages (count)" "if cmd_exists dpkg-query; then dpkg-query -W -f '\${db:Status-Abbrev}\n' | grep -c '^ii'; elif cmd_exists rpm; then rpm -qa | wc -l; else echo 'No package manager found'; fi" \

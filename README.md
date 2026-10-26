@@ -222,11 +222,10 @@ The following tools are detected at runtime. If missing, a yellow warning is sho
 
 - `lspci`, `lsusb`, `lsblk`, `lsb_release` — Arch/SystemInfo
 - `ifconfig`, `curl`, `tailscale` — Network
-- `htop` — Processes & Resources
-- `iptables`, `ufw`, `nmap` — Users & Security
-- `smartctl` — Storage & Filesystem
+- `iptables`, `ufw` — Users & Security
+- `smartctl`, `lsblk` — Storage & Filesystem
 - `systemctl` — Time & Scheduling
-- `apt`, `dnf`, `yum`, `docker` — Packages & Software
+- `apt`, `dnf`, `docker` — Packages & Software
 - `git`, `node`, `python3`, `go` — Development & SWE
 - `vmstat`, `mpstat`, `pidstat`, `systemd-analyze`, `sensors`, `pstree`, `ss`, `dmesg` — Performance & Troubleshooting
 

@@ -69,8 +69,7 @@ exceeds `tput lines`. Consequences:
 - Actions needing an interactive TTY (`htop`, `top` without `-bn1`, `vi`) won't work as
   plain action strings — wrap them in a function.
 - **Never put a pager inside an action string.** `run_cmd` already pages, and a nested
-  `less` sees captured stdout and passes everything through unpaged. The `| less -R` in
-  "Kernel parameters" (`menu.sh:362`) is dead weight — don't copy it.
+  `less` sees captured stdout and passes everything through unpaged.
 
 ### Action strings are `eval`'d — escape accordingly
 

@@ -2,7 +2,7 @@
 
 ## Resume here
 
-**State (2026-10-26):** `master` == `origin/master` at `f15cbc1`, tree clean. `bash -n` OK and
+**State (2026-10-26):** `master` == `origin/master` (head: `git log -1`), tree clean. `bash -n` OK and
 smoke test OK (`Bye.`, rc 0) as of 2026-10-26. Nothing is half-done.
 
 **FIRST (<2 min):**
@@ -12,21 +12,14 @@ bash -n menu.sh && printf 'zz\n0\n' | timeout 10 ./menu.sh | tail -1   # expect:
 ```
 
 **THEN — next direction (pick one; none started):**
-1. Quick one-liners left over from `TRIAGE.md`:
-   - "Epoch / uptime" (`menu.sh:276`) runs only `uptime`. Add `date +%s` or relabel it, and
-     update the README row.
-   - Remove the dead `| less -R` from "Kernel parameters" (`menu.sh:385`).
-   - Add a Bash ≥4 guard right after `set -euo pipefail`. Without it, `${ans^^}` fails mid-menu
-     on bash 3.2.
-   - Trim `check_deps` noise: `htop`, `nmap` and `yum` are listed but no option uses them.
-2. Decide on the duplicate options (Inode usage, Listening ports, uname/uptime). That's a
+1. Decide on the duplicate options (Inode usage, Listening ports, uname/uptime). That's a
    product call, so ask the user.
-3. **Needs the user's go-ahead first:**
+2. **Needs the user's go-ahead first:**
    - Delete the dead Python scaffold (`main.py`, `pyproject.toml`, `.python-version`, `.venv/`).
      `CLAUDE.md` currently says not to touch these files.
    - A smoke-test harness: guard the entry point so `menu.sh` can be sourced, then run every
      action string. `CLAUDE.md` says to propose it before building.
-4. Known gaps, not started:
+3. Known gaps, not started:
    - `ssh_key_summary` ignores a custom `AuthorizedKeysFile`; fixing it means parsing `sshd -T`.
    - The full-filesystem scans don't use `nice`/`ionice` and give no "may take a while" notice.
 
@@ -35,9 +28,13 @@ bash -n menu.sh && printf 'zz\n0\n' | timeout 10 ./menu.sh | tail -1   # expect:
 - **2026-10-26:** fixed all 19 security-audit findings (C1, H1–H4, M1–M7, L1–L7) in `3a52546` and
   `f15cbc1`. `AUDIT.md` was deleted after the fixes. It was never committed, so the detail lives
   in those commit messages.
+- **2026-10-26:** finished the quick fixes from `TRIAGE.md`: Epoch now shows `date +%s`, the stray
+  pager is gone, there's a Bash ≥4 guard, and unused tools are out of `check_deps`.
 
 ## Standing reference (don't re-derive)
 
+- **The Bash ≥4 guard sits above `set -euo pipefail` on purpose.** `sh`/dash dies on
+  `set -o pipefail`, so the guard has to run first to print its message.
 - **Security invariants. Don't regress these:**
   - `find_large_files` reads NUL-separated `find` output and rejects any size that isn't plain
     digits. `[[ -ge ]]` evaluates arithmetic, so a crafted filename meant root code execution
