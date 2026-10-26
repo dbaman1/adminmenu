@@ -22,14 +22,13 @@ bash -n menu.sh && printf 'zz\n0\n' | timeout 10 ./menu.sh | tail -1   # expect:
 3. Known gaps, not started:
    - `ssh_key_summary` ignores a custom `AuthorizedKeysFile`; fixing it means parsing `sshd -T`.
    - The full-filesystem scans don't use `nice`/`ionice` and give no "may take a while" notice.
+   - `packagemenu`'s `check_deps "apt" "dnf" "docker"` always warns on single-distro hosts,
+     because one of apt/dnf is always missing.
 
 ## What shipped
 
-- **2026-10-26:** fixed all 19 security-audit findings (C1, H1–H4, M1–M7, L1–L7) in `3a52546` and
-  `f15cbc1`. `AUDIT.md` was deleted after the fixes. It was never committed, so the detail lives
-  in those commit messages.
-- **2026-10-26:** finished the quick fixes from `TRIAGE.md`: Epoch now shows `date +%s`, the stray
-  pager is gone, there's a Bash ≥4 guard, and unused tools are out of `check_deps`.
+- **2026-10-26:** fixed all 19 audit findings (`3a52546`, `f15cbc1`; the never-committed `AUDIT.md` is
+  deleted, so the detail lives in those commit messages) and the `TRIAGE.md` quick fixes (`ce0176c`).
 
 ## Standing reference (don't re-derive)
 
@@ -58,6 +57,6 @@ bash -n menu.sh && printf 'zz\n0\n' | timeout 10 ./menu.sh | tail -1   # expect:
   - `smartctl` and `dnf` aren't installed on this machine, so those options were only checked
     for their "not available" path.
 - **Commit rhythm:** a short-lived branch, then a commit, then a `--ff-only` merge to `master`,
-  then delete the branch and push `origin master`. The user asks before each push.
+  then delete the branch and push `origin master`. Commit and push only when the user says to.
 - `TRIAGE.md` is the original triage, now partly stale (most of its risks are fixed). Use it
   only for the open items listed above.
